@@ -64,7 +64,7 @@ def parse_arguments():
                                      formatter_class = argparse.RawDescriptionHelpFormatter,
                                      description = config.DESCRIPTION,
                                      epilog = config.EPILOG,
-                                     usage = '%(prog)s -f FASTA_File [-k P,N] [-o out_file]')
+                                     usage = '%(prog)s -f FASTA_File -o out_file [-k P,N] ')
     options = parser.add_argument_group('OPTIONS')
     options.add_argument('-f',
                          help = 'Protein sequences in FASTA format. Required.',
@@ -89,6 +89,7 @@ def parse_arguments():
     return ns
 
 def main():
+    organelle_labels = {"M":"mTP","C":"cTP","N":"Other"}
     args = parse_arguments()
     we = workenv.TemporaryEnv()
     for fasta in SeqIO.parse(args.fasta, 'fasta'):
@@ -150,12 +151,12 @@ def main():
                 cleavage, prob = str(crf_cleavage), crf_prob
                 source = "CRF"
         else:
-            cleavage = "No targeting signal detected"
+            cleavage = "-"
             organelle = "N"
             prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
             motifoccs = []
             source = "CRF"
-        print(fasta.id, organelle, crf_cleavage, cleavage, prob, source,
+        print(fasta.id, organelle_labels[organelle], round(prob,2), cleavage,
               sep="\t",file=args.outFile)
         try:
             c = int(cleavage)
