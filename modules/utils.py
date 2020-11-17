@@ -34,17 +34,16 @@ import re
 import sys
 import biocompy.crf as crf
 
-def compute_hmom(fastafile):
+def compute_hmom(fastafile, we):
     m100, m160 = [], []
-    outfile = tempfile.NamedTemporaryFile(delete = False)
-    hmomfilename = outfile.name
-    sp.check_call(['hmoment',fastafile,'-double','-outfile', hmomfilename], stdout = open("/dev/null", 'w'), stderr = open("/dev/null", 'w'))
-    outfile.close()
+    hmomfilename = we.createFile("hmom.", ".tsv")
+    sp.check_call(['hmoment',fastafile,'-double','-outfile', hmomfilename],
+                   stdout = open("/dev/null", 'w'),
+                   stderr = open("/dev/null", 'w'))
     for line in open(hmomfilename).readlines()[4:]:
         line = line.split()
         m100.append(float(line[1]))
         m160.append(float(line[2]))
-    os.unlink(hmomfilename)
     return m100, m160
 
 def encode_protein(sequence, m100, m160, hscale, window, alphabet):
@@ -73,51 +72,45 @@ def encode_protein(sequence, m100, m160, hscale, window, alphabet):
         dat.append(v)
     return numpy.array(dat)
 
-def crf_predict2(inputdat, crfmodel, crfbin):
+def crf_predict2(inputdat, crfmodel, crfbin, we):
     # ~/biocrf/bin/biocrf -test -w 5 -m crf.model -a 32 -d posterior-viterbi-sum -q post/posterior_label -o crf.positive.pred crf.positive.pred.dat
-    crfdat = tempfile.NamedTemporaryFile(delete = False)
+    crfdat = we.createFile("crf.", ".dat")
+    cdofs=open(crfdat,'w')
     for i in range(inputdat.shape[0]):
         for j in range(inputdat.shape[1]):
-            crfdat.write("%f " % inputdat[i][j])
-        crfdat.write("L\n")
-    crfdat.write("\n")
-    crfdatname = crfdat.name
-    crfdat.close()
-    crfpred = tempfile.NamedTemporaryFile(delete = False)
-    crfpredname = crfpred.name
-    crfpred.close()
-    crfplabel = tempfile.NamedTemporaryFile()
-    crfplabelname = crfplabel.name
-    crfplabel.close
-    crfpstate = tempfile.NamedTemporaryFile()
-    crfpstatename = crfpstate.name
-    crfpstate.close
+            cdofs.write("%f " % inputdat[i][j])
+        cdofs.write("L\n")
+    cdofs.write("\n")
+    cdofs.close()
+    crfpred = we.createFile("crf.", ".pred")
+    crfplabel = we.createFile("crf.",".plabel")
+    crfpstate = we.createFile("crf.",".pstate")
     # Run prediction to get P(State)
     sp.check_call([crfbin,
                    '-test', '-w', '5', '-m',
                    crfmodel, '-a', '1', '-d',
                    'posterior-viterbi-max', '-q',
-                   crfpstatename, '-o', crfpredname, crfdatname], stderr = open("/dev/null", 'w'), stdout = open("/dev/null", 'w'))
-    state_prob = [float(line.split()[45]) for line in open(crfpstatename+"_0").readlines()]
+                   crfpstate, '-o', crfpred, crfdat],
+                  stderr = open("/dev/null", 'w'),
+                  stdout = open("/dev/null", 'w'))
+    state_prob = [float(line.split()[45]) for line in open(crfpstate+"_0").readlines()]
     #print state_prob
     # Run prediction to get P(Label) and actual predictions
-    sp.check_call(['/home/savojard/BUSCA/tools/tppred3/tppred3/tools/biocrf',
+    sp.check_call([crfbin,
                    '-test', '-w', '5', '-m',
                    crfmodel, '-a', '1', '-d',
                    'posterior-viterbi-sum', '-q',
-                   crfplabelname, '-o', crfpredname, crfdatname], stderr = open("/dev/null", 'w'), stdout = open("/dev/null", 'w'))
-    label_prob = [float(line.split()[0]) for line in open(crfplabelname+"_0").readlines()]
+                   crfplabel, '-o', crfpred, crfdat],
+                  stderr = open("/dev/null", 'w'),
+                  stdout = open("/dev/null", 'w'))
+    label_prob = [float(line.split()[0]) for line in open(crfplabel+"_0").readlines()]
     #print crfpredname
-    target = "".join([x.split()[1] for x in open(crfpredname).readlines()[:-1]])
+    target = "".join([x.split()[1] for x in open(crfpred).readlines()[:-1]])
     m = re.match('P+', target)
     if not m == None:
         cleavage = m.end()
     else:
         cleavage = 0
-    os.unlink(crfdatname)
-    os.unlink(crfpredname)
-    os.unlink(crfplabelname+"_0")
-    os.unlink(crfpstatename+"_0")
     return cleavage, numpy.array(label_prob), numpy.array(state_prob)
 
 def crf_predict(inputdat, crfmodel):
@@ -137,49 +130,46 @@ def crf_predict(inputdat, crfmodel):
         cleavage = 0
     return cleavage, numpy.array(label_prob), numpy.array(state_prob)
 
-def elm_predict(seqdat, elmmodel, elmbin):
-    elmproffile = tempfile.NamedTemporaryFile(delete = False)
-    elmdatlistfile = tempfile.NamedTemporaryFile(delete = False)
-    elmoutputfile = tempfile.NamedTemporaryFile(delete = False)
+def elm_predict(seqdat, elmmodel, elmbin, we):
+    elmproffile = we.createFile("elm.",".prof")
+    elmdatlistfile = we.createFile("elm.",".list.txt")
+    elmoutputfile = we.createFile("elm.",".out.txt")
+    oprof = open(elmproffile, 'w')
     for i in range(seqdat.shape[0]):
         for j in range(seqdat.shape[1]):
-            elmproffile.write("%1.1f " % seqdat[i][j])
-        elmproffile.write("\n" % seqdat[i][j])
-    elmproffilename = elmproffile.name
-    elmprofdirname = os.path.dirname(elmproffilename)
-    elmproffile.close()
-    elmdatlistfile.write("%s 0.0\n" % os.path.basename(elmproffilename))
-    elmdatlistfilename = elmdatlistfile.name
-    elmdatlistfile.close()
-    elmoutputfilename = elmoutputfile.name
-    elmoutputfile.close()
+            oprof.write("%1.1f " % seqdat[i][j])
+        oprof.write("\n" % seqdat[i][j])
+    oprof.close()
+    elmprofdir = os.path.dirname(elmproffile)
+    olist = open(elmdatlistfile)
+    olist.write("%s 0.0\n" % os.path.basename(elmproffile))
+    olist.close()
     sp.check_call([elmbin,
                    '-p',
-                   elmprofdirname,
+                   elmprofdir,
                    '-i',
-                   elmdatlistfilename,
+                   elmdatlistfile,
                    '-m',
                    elmmodel,
                    '-o',
-                   elmoutputfilename,
+                   elmoutputfile,
                    '-l', '-t', '-w', '27', '-d', '20', '-b'], stderr = open("/dev/null", 'w'), stdout = open("/dev/null", 'w'))
-    o = float(open(elmoutputfilename).read().strip().split()[2])
+    o = float(open(elmoutputfile).read().strip().split()[2])
     ret = 'C'
     if o < 0.5:
         ret = 'M'
-    os.unlink(elmproffilename)
-    os.unlink(elmdatlistfilename)
-    os.unlink(elmoutputfilename)
     return ret
 
-def find_motifs(fastafile, fimoinput, fimobin, fimoth):
-    fimodir = tempfile.mkdtemp()
+def find_motifs(fastafile, fimoinput, fimobin, fimoth, we):
+    fimodir = we.createDir("fimo.")
     sp.check_call([fimobin,
                   "--thresh", str(fimoth),
                   "--oc", fimodir,
                   fimoinput, fastafile], stdout = open("/dev/null", 'w'), stderr = open("/dev/null", 'w'))
-    occ = [(int(line.split()[0]), int(line.split()[2]) - 1, int(line.split()[3]) - 1, float(line.split()[5]), float(line.split()[6])) for line in open("%s/fimo.txt" % fimodir).readlines()[1:]]
-    shutil.rmtree(fimodir)
+    occ = [(int(line.split()[0]),
+            int(line.split()[2]) - 1,
+            int(line.split()[3]) - 1, float(line.split()[5]),
+            float(line.split()[6])) for line in open("%s/fimo.txt" % fimodir).readlines()[1:]]
     return occ
 
 def read_occ_distribution(handle, window):
@@ -191,23 +181,22 @@ def read_occ_distribution(handle, window):
         mws[int(line[0])] = M
     return mws
 
-def svm_encode_protein(seq, c, w, occs, sp, lp, wdistr, distrfile):
-    #clenv = seq[max(0, c - w):min(len(seq), c + w + 1)]
-    outfile = tempfile.NamedTemporaryFile(delete = False)
-    outfilename = outfile.name
+def svm_encode_protein(seq, c, w, occs, sp, lp, wdistr, distrfile, we):
+    outfile = we.createFile("svm.",".dat")
+    ofs=open(outfile,'w')
     dis = read_occ_distribution(open(distrfile), wdistr)
     for i in range(max(0, c - w), min(len(seq), c + w + 1)):
         sc = 0.0
         for o in occs:
             if o[1] >= i - wdistr/2 and o[1] <= i + wdistr/2:
                 sc += dis.get(o[0], numpy.zeros(wdistr))[o[1]-i+wdistr/2] * o[3]
-        outfile.write("1 1:%f 2:%f 3:%f # pos=%d cleavage=%d\n" % (sc, lp[i], sp[i], i+1, c+1))
-    outfile.close()
-    return outfilename
+        ofs.write("1 1:%f 2:%f 3:%f # pos=%d cleavage=%d\n" % (sc, lp[i], sp[i], i+1, c+1))
+    ofs.close()
+    return outfile
 
-def svm_predict(svmdatfile, svmmodelfile, svmbin):
-    outfile = tempfile.NamedTemporaryFile(delete = False)
-    outfilename = outfile.name
-    outfile.close()
-    sp.check_call([svmbin, "-b", "1", svmdatfile, svmmodelfile, outfilename], stderr = open("/dev/null", 'w'), stdout = open("/dev/null", 'w'))
+def svm_predict(svmdatfile, svmmodelfile, svmbin, we):
+    outfile = we.createFile("svm.",".pred")
+    sp.check_call([svmbin, "-b", "1", svmdatfile, svmmodelfile, outfile],
+                   stderr = open("/dev/null", 'w'),
+                   stdout = open("/dev/null", 'w'))
     return outfilename

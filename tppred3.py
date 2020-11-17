@@ -30,7 +30,6 @@ import sys
 sys.path.append(TPPRED_ROOT)
 
 import os
-from lxml import etree
 import re
 try:
     import tempfile
@@ -58,6 +57,7 @@ except ImportError:
 
 import modules.config as config
 import modules.utils as utils
+import modules.workenv as workenv
 
 def parse_arguments():
     parser = argparse.ArgumentParser(prog = 'tppred3.py',
@@ -72,50 +72,54 @@ def parse_arguments():
                          dest = 'fasta',
                          metavar = 'FILE',
                          required = True)
-    options.add_argument('-k',
-                         help = 'Protein kingdom: P="Plant" or N="non-Plant"',
-                         choices = ['P', 'N'],
-                         default = 'P',
-                         dest = 'kingdom')
     options.add_argument('-o',
                          help = 'Output prediction file. Optional, default: STDOUT.',
                          type = argparse.FileType('w'),
                          dest = 'outFile',
                          default = sys.stdout,
                          metavar = 'FILE',
-                         required = False)
+                         required = True)
+    options.add_argument('-k',
+                         help = 'Protein kingdom: P="Plant" or N="non-Plant"',
+                         choices = ['P', 'N'],
+                         default = 'P',
+                         dest = 'kingdom')
+
     ns = parser.parse_args()
     return ns
 
 def main():
     args = parse_arguments()
-
+    we = workenv.TemporaryEnv()
     for fasta in SeqIO.parse(args.fasta, 'fasta'):
         l = len(str(fasta.seq))
         seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
-        fastarecfile = tempfile.NamedTemporaryFile(delete = False)
-        fastarecfilename = fastarecfile.name
-        SeqIO.write([fasta], fastarecfile, 'fasta')
-        fastarecfile.close()
-        m100, m160 = utils.compute_hmom(fastarecfilename)
+        fastarecfile = we.createFile("seq.", ".fasta")
+        fsofs=open(fastarecfile,'w')
+        SeqIO.write([fasta], fsofs, 'fasta')
+        fsofs.close()
+        m100, m160 = utils.compute_hmom(fastarecfile, we)
         inputdat = utils.encode_protein(seq, m100, m160,
                                         config.KDSCALE,
                                         config.HWINDOW,
                                         config.AA_ORDER)
         crf_cleavage, label_prob, state_prob = utils.crf_predict2(inputdat,
                                                                   config.CRF_MODEL_FILE,
-                                                                  config.CRFBIN)
+                                                                  config.CRFBIN,
+                                                                  we)
         if crf_cleavage > 0:
             crf_prob = numpy.mean(label_prob[:crf_cleavage+1])
             if args.kingdom == "P":
                 seqdat = inputdat[0:crf_cleavage+1, 0:20]
-                organelle = utils.elm_predict(seqdat, config.ELM_MODEL_FILE, config.ELMBIN)
+                organelle = utils.elm_predict(seqdat, config.ELM_MODEL_FILE,
+                                              config.ELMBIN, we)
             else:
                 organelle = "M"
             motifoccs = utils.find_motifs(fastarecfilename,
                                           config.FIMO_MOTIF_FILE[organelle],
                                           config.FIMOBIN,
-                                          config.FIMO_TH[organelle])
+                                          config.FIMO_TH[organelle],
+                                          we)
             svmdatfile = utils.svm_encode_protein(seq,
                                                   crf_cleavage - 1,
                                                   config.SVMWINDOW[organelle]/2,
@@ -123,9 +127,12 @@ def main():
                                                   state_prob,
                                                   label_prob,
                                                   config.MDWINDOW[organelle],
-                                                  config.OCCDISTR[organelle])
-            svmpredfile = utils.svm_predict(svmdatfile, config.SVMMODEL[organelle],
-                                                        config.SVMBIN)
+                                                  config.OCCDISTR[organelle],
+                                                  we)
+            svmpredfile = utils.svm_predict(svmdatfile,
+                                            config.SVMMODEL[organelle],
+                                            config.SVMBIN,
+                                            we)
             pred = []
             dlines = open(svmdatfile).readlines()
             plines = open(svmpredfile).readlines()[1:]
@@ -142,21 +149,20 @@ def main():
             else:
                 cleavage, prob = str(crf_cleavage), crf_prob
                 source = "CRF"
-            os.unlink(svmdatfile)
-            os.unlink(svmpredfile)
         else:
             cleavage = "No targeting signal detected"
             organelle = "N"
             prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
             motifoccs = []
             source = "CRF"
-        os.unlink(fastarecfilename)
-        print fasta.id, organelle, crf_cleavage, cleavage, prob, source
+        print(fasta.id, organelle, crf_cleavage, cleavage, prob, source,
+              sep="\t",file=ns.outFile)
         try:
             c = int(cleavage)
             occs = filter(lambda x: x[1]>=c-config.MDWINDOW[organelle]/2 and x[1]<=c+config.MDWINDOW[organelle]/2, motifoccs)
         except:
             occs = []
+    #we.destroy()
     return 0
 
 if __name__ == "__main__":
