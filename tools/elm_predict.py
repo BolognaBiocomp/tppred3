@@ -1,19 +1,21 @@
 #!/usr/bin/env python
-
+import os
 import getopt
 import numpy
 import sys
 
-sys.path.append('/home/savojard/BUSCA/tools/tppred3/tppred3')
+TPPRED_ROOT = os.environ.get('TPPRED_ROOT')
 
-from modules.biocompy.slfn import *
+sys.path.append(TPPRED_ROOT)
+
+from modules.slfn import *
 
 def printVerbose(level, infolevel, message, nl = True):
     if level >= infolevel:
         if nl:
-            print message
+            print (message)
         else:
-            print message,
+            print (message)
 
 
 
@@ -29,7 +31,7 @@ I/O options:
  -p dir     -> Directory containing examples files. MANDATORY.
  -i file    -> File containing the list of examples. MANDATORY.
  -m file    -> Trained model file. MANDATORY."
- -o file    -> Output prediction file. DEFAULT: examples_file + ".pred" 
+ -o file    -> Output prediction file. DEFAULT: examples_file + ".pred"
  -l         -> Add example names to output. DEFAULT: False.
  -t         -> Transform both targets (if available) and outputs by means
                of a sigmoidal function
@@ -42,23 +44,23 @@ Network options:
  -k act     -> Type of activation function (DEFAULT: logistic):
                 linearr:  one-layer linear network.
                 logistic: sigmoidal activation function 1 / (1+exp(-(w*x + b)).
-                rbf1:     radial basis activation function exp(-||x-w||/b) 
+                rbf1:     radial basis activation function exp(-||x-w||/b)
                           with L1-norm.
-                rbf2:     radial basis activation function exp(-||x-w||^2/b^2) 
+                rbf2:     radial basis activation function exp(-||x-w||^2/b^2)
                           with L2-norm.
  -b         -> Use biased output layer. DEFAULT: 0.
 General options:
  -v [0:2]   -> Verbosity level. DEFAULT: 0.
  -h         -> Print this usage.
 '''
-    print u
+    print (u)
 
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "p:d:o:w:i:m:k:hv:ltb")
-    except getopt.GetoptError, err:
+    except (getopt.GetoptError, err):
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print (str(err)) # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
     window = None
@@ -106,36 +108,36 @@ def main():
             elif a == 'linear':
                 netType = a
             else:
-                print "Unknown activation function", a, ". Using logistic function."
+                print ("Unknown activation function", a, ". Using logistic function.")
         else:
             assert False, "unhandled option"
     if ifileName == None:
-        print 'Please specify an input file'
+        print ('Please specify an input file')
         usage()
         sys.exit(2)
-    
+
     if datadir == None:
-        print 'Please specify the directory that contains data'
+        print ('Please specify the directory that contains data')
         usage()
         sys.exit(2)
 
     if window == None:
         window = 1
-    
+
     if model == None:
-        print 'Please specify a model'
+        print ('Please specify a model')
         usage()
         sys.exit(2)
-    
+
     if ofileName == None:
         ofileName = ifileName + '.pred'
-    
+
     try:
         ifile = open(ifileName)
     except IOError:
-        print 'Cannot open input file %s' % (ifileName,)
+        print ('Cannot open input file %s' % (ifileName,))
         raise
-    
+
     #printVerbose(verbose, 0, 'Reading the network from the model file ' + model)
     printEvery = 400
     ffn = None
@@ -157,7 +159,7 @@ def main():
     targets = []
     examples = []
     i = 0
-    d = (window - 1) / 2
+    d = int((window - 1) / 2)
     printVerbose(verbose, 0, 'Starting reading input file ' + ifileName + '...', nl = False)
     printVerbose(verbose, 1, '')
     sys.stdout.flush()
@@ -168,7 +170,7 @@ def main():
         try:
             prot = open(datadir + '/' + line[0])
         except IOError:
-            print 'Cannot open input file', line[0]
+            print ('Cannot open input file', line[0])
             raise
         lines = prot.readlines()
         seq = [numpy.array(x.split()[0:dim], dtype = numpy.float) for x in lines]
@@ -199,9 +201,9 @@ def main():
     try:
         ofile = open(ofileName, 'w')
     except IOError:
-        print 'Cannot open out file', ofileName, 'for writing'
+        print ('Cannot open out file', ofileName, 'for writing')
         sys.exit(2)
-    printVerbose(verbose, 0, 'Writing prediction to file ' + ofileName + '...') 
+    printVerbose(verbose, 0, 'Writing prediction to file ' + ofileName + '...')
     for j in range(len(preds)):
         ostr = ''
         if outName:

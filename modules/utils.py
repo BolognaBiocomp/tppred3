@@ -32,7 +32,7 @@ import subprocess as sp
 import numpy
 import re
 import sys
-import biocompy.crf as crf
+from . import crf
 
 def compute_hmom(fastafile, we):
     m100, m160 = [], []
@@ -52,7 +52,7 @@ def encode_protein(sequence, m100, m160, hscale, window, alphabet):
     neg = 'ED'
     for i in range(len(sequence)):
         h = p = n = 0.0
-        subseq = sequence[max(0, i-window/2):min(len(sequence),i+window/2 + 1)]
+        subseq = sequence[max(0, i-int(window/2)):min(len(sequence),i+int(window/2) + 1)]
         for aa in subseq:
             h += hscale[aa]
             p += float(aa in pos)
@@ -141,9 +141,11 @@ def elm_predict(seqdat, elmmodel, elmbin, we):
         oprof.write("\n" % seqdat[i][j])
     oprof.close()
     elmprofdir = os.path.dirname(elmproffile)
-    olist = open(elmdatlistfile)
+    olist = open(elmdatlistfile, 'w')
     olist.write("%s 0.0\n" % os.path.basename(elmproffile))
     olist.close()
+    serr = we.createFile("elm.",".serr")
+    sout = we.createFile("elm.",".sout")
     sp.check_call([elmbin,
                    '-p',
                    elmprofdir,
@@ -153,7 +155,9 @@ def elm_predict(seqdat, elmmodel, elmbin, we):
                    elmmodel,
                    '-o',
                    elmoutputfile,
-                   '-l', '-t', '-w', '27', '-d', '20', '-b'], stderr = open("/dev/null", 'w'), stdout = open("/dev/null", 'w'))
+                   '-l', '-t', '-w', '27', '-d', '20', '-b'],
+                  stderr = open(serr, 'w'),
+                  stdout = open(sout, 'w'))
     o = float(open(elmoutputfile).read().strip().split()[2])
     ret = 'C'
     if o < 0.5:
@@ -177,7 +181,7 @@ def read_occ_distribution(handle, window):
     for line in handle.readlines():
         line = line.split()
         M = mws.get(int(line[0]), numpy.zeros(window))
-        M[int(line[1])+window/2] = float(line[2])
+        M[int(line[1])+int(window/2)] = float(line[2])
         mws[int(line[0])] = M
     return mws
 
@@ -188,8 +192,8 @@ def svm_encode_protein(seq, c, w, occs, sp, lp, wdistr, distrfile, we):
     for i in range(max(0, c - w), min(len(seq), c + w + 1)):
         sc = 0.0
         for o in occs:
-            if o[1] >= i - wdistr/2 and o[1] <= i + wdistr/2:
-                sc += dis.get(o[0], numpy.zeros(wdistr))[o[1]-i+wdistr/2] * o[3]
+            if o[1] >= i - int(wdistr/2) and o[1] <= i + int(wdistr/2):
+                sc += dis.get(o[0], numpy.zeros(wdistr))[o[1]-i+int(wdistr/2)] * o[3]
         ofs.write("1 1:%f 2:%f 3:%f # pos=%d cleavage=%d\n" % (sc, lp[i], sp[i], i+1, c+1))
     ofs.close()
     return outfile
@@ -199,4 +203,4 @@ def svm_predict(svmdatfile, svmmodelfile, svmbin, we):
     sp.check_call([svmbin, "-b", "1", svmdatfile, svmmodelfile, outfile],
                    stderr = open("/dev/null", 'w'),
                    stdout = open("/dev/null", 'w'))
-    return outfilename
+    return outfile

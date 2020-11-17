@@ -2,19 +2,19 @@
 #     Bologna Biocomputing Group
 #     University of Bologna, Italy
 #     savojard@biocomp.unibo.it
-#  
+#
 #  crf.py - This file is part of TPPRED2
-#  
+#
 #  TPPRED2 is a free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published
 #  by the Free Software Foundation; either version 3 of the License,
 #  or (at your option) any later version.
-# 
+#
 #  TPPRED2 is distributed in the hope that it will be useful, but
 #  WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with TPPRED2; if not, write to the Free Software Foundation,
 #  Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
@@ -160,7 +160,7 @@ class CRF(object):
         try:
             modelFile = open(modelFile).readlines()
         except IOError:
-            print "Error: Failed to open/reading crf model file"
+            print("Error: Failed to open/reading crf model file")
             raise
         curr = None
 
@@ -272,7 +272,7 @@ class CRF(object):
                     ret = self[s].fw[j][i] * trans * int(j == len(self[s].fw) - 1)
                 else:
                     ret = self[s].fw[j - 1][i] * trans * self[t].scores[j] * self[t].bw[j][i]
-        except IndexError, KeyError:
+        except (IndexError, KeyError):
             pass
         return ret
 
@@ -347,7 +347,7 @@ class CRF(object):
                                     allowed_c.add(st)
                                     self[st].bw[j][1] += trScore
                 if j == 0:
-                    # compute the score at position 0 
+                    # compute the score at position 0
                     for o in range(0, d + 1):
                         if j + o < seqlen:
                             self[st].updateScore(matrix[j + o], j, o)

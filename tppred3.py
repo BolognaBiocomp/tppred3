@@ -24,12 +24,12 @@
 
 # This variable should be set to the tppred installation folder
 
-
+import os
 TPPRED_ROOT = os.environ.get('TPPRED_ROOT')
 import sys
 sys.path.append(TPPRED_ROOT)
 
-import os
+
 import re
 try:
     import tempfile
@@ -115,14 +115,14 @@ def main():
                                               config.ELMBIN, we)
             else:
                 organelle = "M"
-            motifoccs = utils.find_motifs(fastarecfilename,
+            motifoccs = utils.find_motifs(fastarecfile,
                                           config.FIMO_MOTIF_FILE[organelle],
                                           config.FIMOBIN,
                                           config.FIMO_TH[organelle],
                                           we)
             svmdatfile = utils.svm_encode_protein(seq,
                                                   crf_cleavage - 1,
-                                                  config.SVMWINDOW[organelle]/2,
+                                                  int(config.SVMWINDOW[organelle]/2),
                                                   motifoccs,
                                                   state_prob,
                                                   label_prob,
@@ -156,13 +156,13 @@ def main():
             motifoccs = []
             source = "CRF"
         print(fasta.id, organelle, crf_cleavage, cleavage, prob, source,
-              sep="\t",file=ns.outFile)
+              sep="\t",file=args.outFile)
         try:
             c = int(cleavage)
             occs = filter(lambda x: x[1]>=c-config.MDWINDOW[organelle]/2 and x[1]<=c+config.MDWINDOW[organelle]/2, motifoccs)
         except:
             occs = []
-    #we.destroy()
+    we.destroy()
     return 0
 
 if __name__ == "__main__":
