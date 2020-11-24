@@ -52,17 +52,28 @@ $ wget http://www.uniprot.org/uniprot/P30084.fasta
 Now, we are ready to predict the targeting peptide of our input protein. Run:
 
 ```
-$ docker run -v $(pwd):/data/ bolognabiocomp/tppred3 -f P30084.fasta -o P30084.out -k N
+$ docker run -v $(pwd):/data/ bolognabiocomp/tppred3 -f P30084.fasta -o P30084.gff -k N
 ```
 
 In the example above, we are mapping the current program working directory ($(pwd)) to the /data/ folder inside the container. This will allow the container to see the external FASTA file P30084.fasta.
-The file P30084.out now contains the TPpred3 prediction:
+The file P30084.gff now contains the TPpred3 prediction in GFF3 format:
 ```
-$ cat P30084.out
+$ cat P30084.gff
 
-sp|P30084|ECHM_HUMAN	mTP	0.61 27
+sp|P30084|ECHM_HUMAN	TPpred3	Transit peptide	1	27	0.61	.	. Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P30084|ECHM_HUMAN	TPpred3	Chain	28	290	.	.	.	.
+sp|P30084|ECHM_HUMAN	fimo	Motif	25	28	9.52	.	.	Name:Mitochondrion cleavage-site motif 1 (RC|[YF][AS]);matching_sequence=RPFA;evidence=ECO:0000256;Dbxref=PMID:26079349
+
 ```
-The first column is the protein accession/id as reported in the input fasta file. The second column report the result of targeting peptide detection. Three different outcomes are possible: mTP (i.e. a mitochondrial-targeting peptide is detected at the N-terminus of the protein), cTP (i.e. a chloroplast-targeting peptide is detected at the N-terminus of the protein, only in plant mode) or Other (i.e. no targeting peptide is detected). The third column is a reliabilty score attached to the previous prediction. Finally, the fourth column reports, for those proteins predicted as having a targeting peptide (eiher mTP or cTP), the predicted position of the cleavage site.
+Columns are as follows:
+- Column 1: the protein ID/accession as reported in the FASTA input file;
+- Column 2: the name of tool performing the annotation (either TPpred3 or fimo for Motifs, see below)
+- Column 3: the annotated feature alogn the sequence. Can be "Transit peptide", "Chain" (indicating the mature protein) or "Motif" (for reporting cleavage-site motif occurrence)
+- Column 4: start position of the feature;
+- Column 5: end position of the feature;
+- Column 6: feature annotation score (as assigned by TPpred3 for transit peptides or fimo for motifs);
+- Columns 7,8: always empty, reported for compliance with GFF3 format
+- Column 9: Description field. In Note, the type of transit pepetide is reported (either Mitochondrion or Chloroplast). Gene Ontology Cellular Component terms are also reported (only when a transit peptide is detected). Description is always empty for Chain features. In case of Motifs, the description reports the motif name, the motif degenerate sequence and the actual sequence match. For more details about cleavage-site motifs, please see the [TPpred3 publication](http://bioinformatics.oxfordjournals.org/content/31/20/3269).
 
 ### Install and use TPpred3 from source
 
@@ -129,21 +140,43 @@ $ ./tppred3.py -f example/example.fasta -k P -o example/example.out
 
 This will run tppred3 on sequences contained in the "example/example.fasta" file, in plant mode and storing the output in the "example/example.out" file.
 
-Once the prediction is done, the output should look like the following:
+Once the prediction is done, the GFF3 output should look like the following:
 
 ```
 $ cat example/example.out
 
-sp|P30084|ECHM_HUMAN	mTP	0.61	27
-sp|P36957|ODO2_HUMAN	mTP	0.91	67
-sp|Q86U06|RBM23_HUMAN	Other	1.0	-
-sp|P38646|GRP75_HUMAN	cTP	0.83	46
-sp|P48047|ATPO_HUMAN	mTP	0.84	23
-sp|P48201|AT5G3_HUMAN	mTP	0.73	67
-sp|P49411|EFTU_HUMAN	Other	0.72	-
-sp|P49448|DHE4_HUMAN	mTP	0.81	53
-sp|P55084|ECHB_HUMAN	mTP	0.72	34
+##gff-version 3
+sp|P30084|ECHM_HUMAN	TPpred3	Transit peptide	1	27	0.61	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P30084|ECHM_HUMAN	TPpred3	Chain	28	290	.	.	.	.
+sp|P30084|ECHM_HUMAN	fimo	Motif	25	28	9.52	.	.	Name:Mitochondrion cleavage-site motif 1 (RC|[YF][AS]);matching_sequence=RPFA;evidence=ECO:0000256;Dbxref=PMID:26079349
+sp|P36957|ODO2_HUMAN	TPpred3	Transit peptide	1	67	0.91	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P36957|ODO2_HUMAN	TPpred3	Chain	68	453	.	.	.	.
+sp|Q86U06|RBM23_HUMAN	TPpred3	Chain	1	439	1.0	.	.	.
+sp|P38646|GRP75_HUMAN	TPpred3	Transit peptide	1	46	0.83	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P38646|GRP75_HUMAN	TPpred3	Chain	47	679	.	.	.	.
+sp|P38646|GRP75_HUMAN	fimo	Motif	44	47	9.6	.	.	Name:Mitochondrion cleavage-site motif 1 (RC|[YF][AS]);matching_sequence=RDYA;evidence=ECO:0000256;Dbxref=PMID:26079349
+sp|P48047|ATPO_HUMAN	TPpred3	Transit peptide	1	23	0.84	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P48047|ATPO_HUMAN	TPpred3	Chain	24	213	.	.	.	.
+sp|P48047|ATPO_HUMAN	fimo	Motif	22	25	9.52	.	.	Name:Mitochondrion cleavage-site motif 1 (RC|[YF][AS]);matching_sequence=RPFA;evidence=ECO:0000256;Dbxref=PMID:26079349
+sp|P48201|AT5G3_HUMAN	TPpred3	Transit peptide	1	67	0.73	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P48201|AT5G3_HUMAN	TPpred3	Chain	68	142	.	.	.	.
+sp|P49411|EFTU_HUMAN	TPpred3	Chain	1	452	0.72	.	.	.
+sp|P49448|DHE4_HUMAN	TPpred3	Transit peptide	1	53	0.81	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P49448|DHE4_HUMAN	TPpred3	Chain	54	558	.	.	.	.
+sp|P49448|DHE4_HUMAN	fimo	Motif	51	54	11.03	.	.	Name:Mitochondrion cleavage-site motif 1 (RC|[YF][AS]);matching_sequence=RHYS;evidence=ECO:0000256;Dbxref=PMID:26079349
+sp|P55084|ECHB_HUMAN	TPpred3	Transit peptide	1	34	0.72	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P55084|ECHB_HUMAN	TPpred3	Chain	35	474	.	.	.	.
+sp|P55084|ECHB_HUMAN	fimo	Motif	31	38	0.09	.	.	Name:Mitochondrion cleavage-site motif 2 (SVRx|Y[SA][TS]G);matching_sequence=QLRAAPAV;evidence=ECO:0000256;Dbxref=PMID:26079349
 ```
-The first column is the protein accession/id as reported in the input fasta file. The second column report the result of targeting peptide detection. Three different outcomes are possible: mTP (i.e. a mitochondrial-targeting peptide is detected at the N-terminus of the protein), cTP (i.e. a chloroplast-targeting peptide is detected at the N-terminus of the protein, only in plant mode) or Other (i.e. no targeting peptide is detected). The third column is a reliabilty score attached to the previous prediction. Finally, the fourth column reports, for those proteins predicted as having a targeting peptide (eiher mTP or cTP), the predicted position of the cleavage site.
+
+Columns are as follows:
+- Column 1: the protein ID/accession as reported in the FASTA input file;
+- Column 2: the name of tool performing the annotation (either TPpred3 or fimo for Motifs, see below)
+- Column 3: the annotated feature alogn the sequence. Can be "Transit peptide", "Chain" (indicating the mature protein) or "Motif" (for reporting cleavage-site motif occurrence)
+- Column 4: start position of the feature;
+- Column 5: end position of the feature;
+- Column 6: feature annotation score (as assigned by TPpred3 for transit peptides or fimo for motifs);
+- Columns 7,8: always empty, reported for compliance with GFF3 format
+- Column 9: Description field. In Note, the type of transit pepetide is reported (either Mitochondrion or Chloroplast). Gene Ontology Cellular Component terms are also reported (only when a transit peptide is detected). Description is always empty for Chain features. In case of Motifs, the description reports the motif name, the motif degenerate sequence and the actual sequence match. For more details about cleavage-site motifs, please see the [TPpred3 publication](http://bioinformatics.oxfordjournals.org/content/31/20/3269).
 
 Please, reports bugs to: castrense.savojardo2@unibo.it
