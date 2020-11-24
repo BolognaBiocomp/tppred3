@@ -29,30 +29,30 @@ TPPRED_ROOT = os.environ.get('TPPRED_ROOT')
 import sys
 sys.path.append(TPPRED_ROOT)
 
-
+import logging
 import re
 try:
     import tempfile
 except ImportError:
-    sys.stderr.write("Error: Python module tempfile not found.\n")
+    logging.error("Python module tempfile not found.")
     sys.exit(1)
 
 try:
     import argparse
 except ImportError:
-    sys.stderr.write("Error: Python module argparse not found.\n")
+    logging.error("Python module argparse not found.")
     sys.exit(1)
 
 try:
     from Bio import SeqIO
 except ImportError:
-    sys.stderr.write("Error: Python module biopython not found.\n")
+    logging.error("Python module biopython not found.")
     sys.exit(1)
 
 try:
     import numpy
 except ImportError:
-    sys.stderr.write("Error: Python module numpy not found.\n")
+    logging.error("Python module numpy not found.")
     sys.exit(1)
 
 import modules.config as config
@@ -89,85 +89,91 @@ def parse_arguments():
     return ns
 
 def main():
-    organelle_labels = {"M":"mTP","C":"cTP","N":"Other"}
     args = parse_arguments()
     we = workenv.TemporaryEnv()
-    for fasta in SeqIO.parse(args.fasta, 'fasta'):
-        l = len(str(fasta.seq))
-        seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
-        fastarecfile = we.createFile("seq.", ".fasta")
-        fsofs=open(fastarecfile,'w')
-        SeqIO.write([fasta], fsofs, 'fasta')
-        fsofs.close()
-        m100, m160 = utils.compute_hmom(fastarecfile, we)
-        inputdat = utils.encode_protein(seq, m100, m160,
-                                        config.KDSCALE,
-                                        config.HWINDOW,
-                                        config.AA_ORDER)
-        crf_cleavage, label_prob, state_prob = utils.crf_predict2(inputdat,
-                                                                  config.CRF_MODEL_FILE,
-                                                                  config.CRFBIN,
-                                                                  we)
-        if crf_cleavage > 0:
-            crf_prob = numpy.mean(label_prob[:crf_cleavage+1])
-            if args.kingdom == "P":
-                seqdat = inputdat[0:crf_cleavage+1, 0:20]
-                organelle = utils.elm_predict(seqdat, config.ELM_MODEL_FILE,
-                                              config.ELMBIN, we)
+    print("##gff-version 3", file = args.outFile)
+    try:
+        for fasta in SeqIO.parse(args.fasta, 'fasta'):
+            l = len(str(fasta.seq))
+            seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
+            fastarecfile = we.createFile("seq.", ".fasta")
+            fsofs=open(fastarecfile,'w')
+            SeqIO.write([fasta], fsofs, 'fasta')
+            fsofs.close()
+            m100, m160 = utils.compute_hmom(fastarecfile, we)
+            inputdat = utils.encode_protein(seq, m100, m160,
+                                            config.KDSCALE,
+                                            config.HWINDOW,
+                                            config.AA_ORDER)
+            crf_cleavage, label_prob, state_prob = utils.crf_predict2(inputdat,
+                                                                      config.CRF_MODEL_FILE,
+                                                                      config.CRFBIN,
+                                                                      we)
+            if crf_cleavage > 0:
+                crf_prob = numpy.mean(label_prob[:crf_cleavage+1])
+                if args.kingdom == "P":
+                    seqdat = inputdat[0:crf_cleavage+1, 0:20]
+                    organelle = utils.elm_predict(seqdat, config.ELM_MODEL_FILE,
+                                                  config.ELMBIN, we)
+                else:
+                    organelle = "M"
+                motifoccs = utils.find_motifs(fastarecfile,
+                                              config.FIMO_MOTIF_FILE[organelle],
+                                              config.FIMOBIN,
+                                              config.FIMO_TH[organelle],
+                                              we)
+                svmdatfile = utils.svm_encode_protein(seq,
+                                                      crf_cleavage - 1,
+                                                      int(config.SVMWINDOW[organelle]/2),
+                                                      motifoccs,
+                                                      state_prob,
+                                                      label_prob,
+                                                      config.MDWINDOW[organelle],
+                                                      config.OCCDISTR[organelle],
+                                                      we)
+                svmpredfile = utils.svm_predict(svmdatfile,
+                                                config.SVMMODEL[organelle],
+                                                config.SVMBIN,
+                                                we)
+                pred = []
+                dlines = open(svmdatfile).readlines()
+                plines = open(svmpredfile).readlines()[1:]
+                for i in range(len(dlines)):
+                    lined = dlines[i].split()
+                    linep = plines[i].split()
+                    if int(linep[0]) == 1:
+                        pred.append((int(lined[5].split("=")[1]), float(linep[1])))
+                if len(pred) > 0:
+                    cleavage, prob = sorted(pred, key = lambda x: x[1])[-1]
+                    prob = crf_prob
+                    cleavage = str(cleavage)
+                    source = "SVM"
+                else:
+                    cleavage, prob = str(crf_cleavage), crf_prob
+                    source = "CRF"
             else:
-                organelle = "M"
-            motifoccs = utils.find_motifs(fastarecfile,
-                                          config.FIMO_MOTIF_FILE[organelle],
-                                          config.FIMOBIN,
-                                          config.FIMO_TH[organelle],
-                                          we)
-            svmdatfile = utils.svm_encode_protein(seq,
-                                                  crf_cleavage - 1,
-                                                  int(config.SVMWINDOW[organelle]/2),
-                                                  motifoccs,
-                                                  state_prob,
-                                                  label_prob,
-                                                  config.MDWINDOW[organelle],
-                                                  config.OCCDISTR[organelle],
-                                                  we)
-            svmpredfile = utils.svm_predict(svmdatfile,
-                                            config.SVMMODEL[organelle],
-                                            config.SVMBIN,
-                                            we)
-            pred = []
-            dlines = open(svmdatfile).readlines()
-            plines = open(svmpredfile).readlines()[1:]
-            for i in range(len(dlines)):
-                lined = dlines[i].split()
-                linep = plines[i].split()
-                if int(linep[0]) == 1:
-                    pred.append((int(lined[5].split("=")[1]), float(linep[1])))
-            if len(pred) > 0:
-                cleavage, prob = sorted(pred, key = lambda x: x[1])[-1]
-                prob = crf_prob
-                cleavage = str(cleavage)
-                source = "SVM"
-            else:
-                cleavage, prob = str(crf_cleavage), crf_prob
+                cleavage = "-"
+                organelle = "N"
+                prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
+                motifoccs = []
                 source = "CRF"
-        else:
-            cleavage = "-"
-            organelle = "N"
-            prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
-            motifoccs = []
-            source = "CRF"
-        #print(fasta.id, organelle_labels[organelle], round(prob,2), cleavage,
-        #      sep="\t",file=args.outFile)
-        utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
-                               organelle, prob, cleavage)
-        try:
-            c = int(cleavage)
-            occs = filter(lambda x: x[1]>=c-config.MDWINDOW[organelle]/2 and x[1]<=c+config.MDWINDOW[organelle]/2, motifoccs)
-        except:
-            occs = []
-    we.destroy()
-    return 0
+
+            try:
+                c = int(cleavage)
+
+                occs = [x for x in motifoccs if x[1]>=c-int(config.MDWINDOW[organelle]/2) \
+                                        and x[1]<=c+int(config.MDWINDOW[organelle]/2)]
+                print(occs)
+            except:
+                occs = []
+            utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
+                                   organelle, prob, cleavage, occs)
+    except:
+        logging.exception("Errors occurred:")
+        sys.exit(1)
+    else:
+        we.destroy()
+    sys.exit(0)
 
 if __name__ == "__main__":
-    r = main()
-    sys.exit(r)
+    main()
