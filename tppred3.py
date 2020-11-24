@@ -30,6 +30,9 @@ import sys
 sys.path.append(TPPRED_ROOT)
 
 import logging
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(message)s',
+                    datefmt="[%a, %d %b %Y %H:%M:%S]")
 import re
 try:
     import tempfile
@@ -94,6 +97,7 @@ def main():
     print("##gff-version 3", file = args.outFile)
     try:
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
+            logging.info("Processing sequence %s" % fasta.id)
             l = len(str(fasta.seq))
             seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
             fastarecfile = we.createFile("seq.", ".fasta")
@@ -163,9 +167,10 @@ def main():
 
                 occs = [x for x in motifoccs if x[1]>=c-int(config.MDWINDOW[organelle]/2) \
                                         and x[1]<=c+int(config.MDWINDOW[organelle]/2)]
-                
+
             except:
                 occs = []
+            logging.info("Done, writing results to output file.")
             utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
                                    organelle, prob, cleavage, occs)
     except:
