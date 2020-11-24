@@ -163,7 +163,7 @@ def main():
 
                 occs = [x for x in motifoccs if x[1]>=c-int(config.MDWINDOW[organelle]/2) \
                                         and x[1]<=c+int(config.MDWINDOW[organelle]/2)]
-                print(occs)
+                
             except:
                 occs = []
             utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
