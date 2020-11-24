@@ -33,6 +33,7 @@ import numpy
 import re
 import sys
 from . import crf
+from . import config as cfg
 
 def compute_hmom(fastafile, we):
     m100, m160 = [], []
@@ -204,3 +205,15 @@ def svm_predict(svmdatfile, svmmodelfile, svmbin, we):
                    stderr = open("/dev/null", 'w'),
                    stdout = open("/dev/null", 'w'))
     return outfile
+
+def write_gff_output(acc, sequence, output_file, organelle, prob, cleavage):
+    l = len(sequence)
+    if cleavage != "-":
+        print(acc, "TPpred3", "Transit peptide", 1, cleavage, prob, ".", ".",
+              "Note:%s;Ontology_term:%s;evidence=ECO:0000256" % cfg.locmap[organelle],
+              sep = "\t", file = output_file)
+        print(acc, "TPpred3", "Chain", int(cleavage)+1, l, ".", ".", ".",
+              sep = "\t", file = output_file)
+    else:
+        print(acc, "TPpred3", "Chain", 1, l, prob, ".", ".", ".",
+              sep = "\t", file = output_file)

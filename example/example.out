@@ -1,9 +1,16 @@
-sp|P30084|ECHM_HUMAN	mTP	0.61	27
-sp|P36957|ODO2_HUMAN	mTP	0.91	67
-sp|Q86U06|RBM23_HUMAN	Other	1.0	-
-sp|P38646|GRP75_HUMAN	cTP	0.83	46
-sp|P48047|ATPO_HUMAN	mTP	0.84	23
-sp|P48201|AT5G3_HUMAN	mTP	0.73	67
-sp|P49411|EFTU_HUMAN	Other	0.72	-
-sp|P49448|DHE4_HUMAN	mTP	0.81	53
-sp|P55084|ECHB_HUMAN	mTP	0.72	34
+sp|P30084|ECHM_HUMAN	TPpred3	Transit peptide	1	27	0.6058206654848529	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P30084|ECHM_HUMAN	TPpred3	Chain	28	290	.	.	.
+sp|P36957|ODO2_HUMAN	TPpred3	Transit peptide	1	67	0.9053533922065002	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P36957|ODO2_HUMAN	TPpred3	Chain	68	453	.	.	.
+sp|Q86U06|RBM23_HUMAN	TPpred3	Chain	1	439	0.9999146336821847	.	.	.
+sp|P38646|GRP75_HUMAN	TPpred3	Transit peptide	1	46	0.8254534621758399	.	.	Note:Chloroplast;Ontology_term:GO:0009507;evidence=ECO:0000256
+sp|P38646|GRP75_HUMAN	TPpred3	Chain	47	679	.	.	.
+sp|P48047|ATPO_HUMAN	TPpred3	Transit peptide	1	23	0.8384257503494021	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P48047|ATPO_HUMAN	TPpred3	Chain	24	213	.	.	.
+sp|P48201|AT5G3_HUMAN	TPpred3	Transit peptide	1	67	0.7276445798368615	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P48201|AT5G3_HUMAN	TPpred3	Chain	68	142	.	.	.
+sp|P49411|EFTU_HUMAN	TPpred3	Chain	1	452	0.7224403629003648	.	.	.
+sp|P49448|DHE4_HUMAN	TPpred3	Transit peptide	1	53	0.8125280171830814	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P49448|DHE4_HUMAN	TPpred3	Chain	54	558	.	.	.
+sp|P55084|ECHB_HUMAN	TPpred3	Transit peptide	1	34	0.7178875928304866	.	.	Note:Mitochondrion;Ontology_term:GO:0005739;evidence=ECO:0000256
+sp|P55084|ECHB_HUMAN	TPpred3	Chain	35	474	.	.	.

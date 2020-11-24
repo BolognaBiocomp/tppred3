@@ -156,8 +156,10 @@ def main():
             prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
             motifoccs = []
             source = "CRF"
-        print(fasta.id, organelle_labels[organelle], round(prob,2), cleavage,
-              sep="\t",file=args.outFile)
+        #print(fasta.id, organelle_labels[organelle], round(prob,2), cleavage,
+        #      sep="\t",file=args.outFile)
+        utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
+                               organelle, prob, cleavage)
         try:
             c = int(cleavage)
             occs = filter(lambda x: x[1]>=c-config.MDWINDOW[organelle]/2 and x[1]<=c+config.MDWINDOW[organelle]/2, motifoccs)

@@ -88,3 +88,7 @@ FIMOBIN = 'fimo'
 SVMBIN = 'svm-predict'
 
 CRFBIN = os.path.join(TPPRED_ROOT, 'tools', 'biocrf-static')
+
+locmap = {"M": ("Mitochondrion", "GO:0005739"),
+          "C": ("Chloroplast", "GO:0009507"),
+          "N": ("Other", "")}
