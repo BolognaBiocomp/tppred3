@@ -212,7 +212,7 @@ def write_gff_output(acc, sequence, output_file, organelle, prob, cleavage, moti
         print(acc, "TPpred3", "Transit peptide", 1, cleavage, round(prob,2), ".", ".",
               "Note:%s;Ontology_term:%s;evidence=ECO:0000256" % cfg.locmap[organelle],
               sep = "\t", file = output_file)
-        print(acc, "TPpred3", "Chain", int(cleavage)+1, l, ".", ".", ".", ".",
+        print(acc, "TPpred3", "Chain", int(cleavage)+1, l, ".", ".", ".", "evidence=ECO:0000256",
               sep = "\t", file = output_file)
         if len(motifs) > 0:
             for m in motifs:
@@ -221,5 +221,5 @@ def write_gff_output(acc, sequence, output_file, organelle, prob, cleavage, moti
                       sep = "\t", file = output_file)
 
     else:
-        print(acc, "TPpred3", "Chain", 1, l, round(prob,2), ".", ".", ".",
+        print(acc, "TPpred3", "Chain", 1, l, round(prob,2), ".", ".", "evidence=ECO:0000256",
               sep = "\t", file = output_file)
