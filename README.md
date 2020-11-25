@@ -89,7 +89,7 @@ To obtain TPpred3, clone the repository from GitHub:
 $ git clone https://github.com/BolognaBiocomp/tppred3
 ```
 
-This will produce a directory “tppred3”. Before running deepsig you need to set and export a variable named TPPRED_ROOT to point to the tppred3 installation dir:
+This will produce a directory “tppred3”. Before running tppred3 you need to set and export a variable named TPPRED_ROOT to point to the tppred3 installation dir:
 ```
 $ export TPPRED_ROOT='/path/to/tppred3'
 ```
