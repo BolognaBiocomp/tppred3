@@ -241,7 +241,7 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
             "score": round(float(prob),2),
             "evidences": [
                 {
-                "code": "ECO:0000255",
+                "code": "ECO:0000256",
                 "source": {
                     "name": "SAM",
                     "id": "TPpred3",
@@ -258,7 +258,7 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
             "end": len(sequence),
             "evidences": [
                 {
-                "code": "ECO:0000255",
+                "code": "ECO:0000256",
                 "source": {
                     "name": "SAM",
                     "id": "TPpred3",
@@ -278,7 +278,7 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
                     "score": round(float(m[3]),2),
                     "evidences": [
                       {
-                        "code": "ECO:0000255",
+                        "code": "ECO:0000256",
                         "source": {
                           "name": "SAM",
                           "id": "TPpred3/FIMO",
