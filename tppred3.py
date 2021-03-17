@@ -28,7 +28,7 @@ import os
 TPPRED_ROOT = os.environ.get('TPPRED_ROOT')
 import sys
 sys.path.append(TPPRED_ROOT)
-
+import json
 import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(message)s',
@@ -67,7 +67,7 @@ def parse_arguments():
                                      formatter_class = argparse.RawDescriptionHelpFormatter,
                                      description = config.DESCRIPTION,
                                      epilog = config.EPILOG,
-                                     usage = '%(prog)s -f FASTA_File -o out_file [-k P,N] ')
+                                     usage = '%(prog)s -f FASTA_File -o out_file [-k P,N] [-m [json|gff3]] ')
     options = parser.add_argument_group('OPTIONS')
     options.add_argument('-f',
                          help = 'Protein sequences in FASTA format. Required.',
@@ -87,15 +87,19 @@ def parse_arguments():
                          choices = ['P', 'N'],
                          default = 'P',
                          dest = 'kingdom')
-
+    parser.add_argument("-m", "--outfmt",
+                        help = "The output format: json or gff3 (default)",
+                        choices=['json', 'gff3'], required = False, default = "gff3")
     ns = parser.parse_args()
     return ns
 
 def main():
     args = parse_arguments()
     we = workenv.TemporaryEnv()
-    print("##gff-version 3", file = args.outFile)
+    if args.outfmt == "gff3":
+        print("##gff-version 3", file = args.outFile)
     try:
+        protein_jsons = []
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
             logging.info("Processing sequence %s" % fasta.id)
             l = len(str(fasta.seq))
@@ -171,8 +175,16 @@ def main():
             except:
                 occs = []
             logging.info("Done, writing results to output file.")
-            utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
-                                   organelle, prob, cleavage, occs)
+            if args.outfmt == "gff3":
+                utils.write_gff_output(fasta.id, str(fasta.seq), args.outFile,
+                                       organelle, prob, cleavage, occs)
+            else:
+                acc_json = utils.get_json_output(fasta.id, str(fasta.seq),
+                                                 organelle, prob, cleavage, occs)
+                protein_jsons.append(acc_json)
+        if args.outfmt == "json":
+            json.dump(protein_jsons, args.outFile, indent=5)
+
     except:
         logging.exception("Errors occurred:")
         sys.exit(1)

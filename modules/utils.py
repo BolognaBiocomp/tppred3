@@ -217,9 +217,74 @@ def write_gff_output(acc, sequence, output_file, organelle, prob, cleavage, moti
         if len(motifs) > 0:
             for m in motifs:
                 print(acc, "fimo", "Motif", m[1]+1, m[2]+1, round(m[3],2), ".", ".",
-                      "Name=%s cleavage-site motif %d (%s);matching_sequence=%s;evidence=ECO:0000256;Dbxref=PMID:26079349" % (cfg.locmap[organelle][0], m[0], cfg.motifmap[organelle][m[0]] , sequence[m[1]:m[2]+1]),
+                      "Name=%s cleavage-site motif %d (%s);matching_sequence=%s;evidence=ECO:0000256;Dbxref=PMID:26079349" %
+                      (cfg.locmap[organelle][0], m[0], cfg.motifmap[organelle][m[0]] , sequence[m[1]:m[2]+1]),
                       sep = "\t", file = output_file)
 
     else:
         print(acc, "TPpred3", "Chain", 1, l, round(prob,2), ".", ".", "evidence=ECO:0000256",
               sep = "\t", file = output_file)
+
+def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
+    acc_json = {'accession': acc, 'features': []}
+    acc_json['sequence'] = {
+                              "length": len(sequence),
+                              "sequence": sequence
+                           }
+    if cleavage != "-":
+        acc_json['features'].append({
+            "type": "TRANSIT",
+            "category": "MOLECULE_PROCESSING",
+            "description": cfg.locmap[organelle][0],
+            "begin": 1,
+            "end": int(cleavage),
+            "score": round(float(prob),2),
+            "evidences": [
+                {
+                "code": "ECO:0000255",
+                "source": {
+                    "name": "SAM",
+                    "id": "TPpred3",
+                    "url": "https://tppred3.biocomp.unibo.it"
+                    }
+                }
+            ]
+        })
+        acc_json['features'].append({
+            "type": "CHAIN",
+            "category": "MOLECULE_PROCESSING",
+            "description": "Mature protein",
+            "begin": int(cleavage)+1,
+            "end": len(sequence),
+            "evidences": [
+                {
+                "code": "ECO:0000255",
+                "source": {
+                    "name": "SAM",
+                    "id": "TPpred3",
+                    "url": "https://tppred3.biocomp.unibo.it"
+                    }
+                }
+            ]
+        })
+        if len(motifs) > 0:
+            for m in motifs:
+                acc_json['features'].append({
+                    "type": "MOTIF",
+                    "category": "DOMAINS_AND_SITES",
+                    "description": "%s cleavage-site motif %d (%s)" % (cfg.locmap[organelle][0], m[0], cfg.motifmap[organelle][m[0]]),
+                    "begin": m[1]+1,
+                    "end": m[2]+1,
+                    "score": round(float(m[3]),2),
+                    "evidences": [
+                      {
+                        "code": "ECO:0000255",
+                        "source": {
+                          "name": "SAM",
+                          "id": "TPpred3/FIMO",
+                          "url": "https://tppred3.biocomp.unibo.it",
+                        }
+                      }
+                    ]
+                })
+    return acc_json
