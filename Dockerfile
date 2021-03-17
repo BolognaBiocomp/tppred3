@@ -1,5 +1,5 @@
 # Base Image
-FROM continuumio/miniconda3
+FROM continuumio/miniconda3:4.8
 
 # Metadata
 LABEL base.image="continuumio/miniconda3:4.8"
