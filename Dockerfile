@@ -2,7 +2,7 @@
 FROM continuumio/miniconda3:4.7.12
 
 # Metadata
-LABEL base.image="continuumio/miniconda3:4.8.3"
+LABEL base.image="continuumio/miniconda3:4.7.12"
 LABEL version="3.0"
 LABEL software="TPpred3"
 LABEL software.version="2015012"
