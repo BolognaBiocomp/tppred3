@@ -94,4 +94,4 @@ locmap = {"M": ("Mitochondrion", "GO:0005739"),
           "N": ("Other", "")}
 
 motifmap = {'M': {1: "RC|[YF][AS]", 2: "SVRx|Y[SA][TS]G"},
-            'C': {1: "[VI][RA]|[AC]AAE", 2: "	S[VI][RSV]|[CA]A", 3: "	[AV]N|A[AM]AG[ED]"}}
+            'C': {1: "[VI][RA]|[AC]AAE", 2: "S[VI][RSV]|[CA]A", 3: "[AV]N|A[AM]AG[ED]"}}
