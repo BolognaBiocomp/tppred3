@@ -225,14 +225,10 @@ def write_gff_output(acc, sequence, output_file, organelle, prob, cleavage, moti
         print(acc, "TPpred3", "Chain", 1, l, round(prob,2), ".", ".", "evidence=ECO:0000256",
               sep = "\t", file = output_file)
 
-def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
-    acc_json = {'accession': acc, 'features': []}
-    acc_json['sequence'] = {
-                              "length": len(sequence),
-                              "sequence": sequence
-                           }
+def get_json_output(i_json, organelle, prob, cleavage, motifs):
+    sequence = i_json['sequence']['sequence']
     if cleavage != "-":
-        acc_json['features'].append({
+        i_json['features'].append({
             "type": "TRANSIT",
             "category": "MOLECULE_PROCESSING",
             "description": cfg.locmap[organelle][0],
@@ -250,7 +246,7 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
                 }
             ]
         })
-        acc_json['features'].append({
+        i_json['features'].append({
             "type": "CHAIN",
             "category": "MOLECULE_PROCESSING",
             "description": "Mature protein",
@@ -269,7 +265,7 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
         })
         if len(motifs) > 0:
             for m in motifs:
-                acc_json['features'].append({
+                i_json['features'].append({
                     "type": "MOTIF",
                     "category": "DOMAINS_AND_SITES",
                     "description": "%s cleavage-site motif %d (%s)" % (cfg.locmap[organelle][0], m[0], cfg.motifmap[organelle][m[0]]),
@@ -287,4 +283,4 @@ def get_json_output(acc, sequence, organelle, prob, cleavage, motifs):
                       }
                     ]
                 })
-    return acc_json
+    return i_json
