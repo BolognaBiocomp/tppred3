@@ -95,12 +95,13 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    we = workenv.TemporaryEnv()
+
     if args.outfmt == "gff3":
         print("##gff-version 3", file = args.outFile)
     try:
         protein_jsons = []
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
+            we = workenv.TemporaryEnv()
             logging.info("Processing sequence %s" % fasta.id)
             l = len(str(fasta.seq))
             seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
@@ -182,14 +183,14 @@ def main():
                 acc_json = utils.get_json_output(fasta.id, str(fasta.seq),
                                                  organelle, prob, cleavage, occs)
                 protein_jsons.append(acc_json)
+            we.destroy()
         if args.outfmt == "json":
             json.dump(protein_jsons, args.outFile, indent=5)
 
     except:
         logging.exception("Errors occurred:")
         sys.exit(1)
-    else:
-        we.destroy()
+
     sys.exit(0)
 
 if __name__ == "__main__":
