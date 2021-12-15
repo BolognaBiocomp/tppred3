@@ -171,10 +171,22 @@ def find_motifs(fastafile, fimoinput, fimobin, fimoth, we):
                   "--thresh", str(fimoth),
                   "--oc", fimodir,
                   fimoinput, fastafile], stdout = open("/dev/null", 'w'), stderr = open("/dev/null", 'w'))
-    occ = [(int(line.split()[0]),
-            int(line.split()[2]) - 1,
-            int(line.split()[3]) - 1, float(line.split()[5]),
-            float(line.split()[6])) for line in open("%s/fimo.txt" % fimodir).readlines()[1:]]
+    if os.path.exists("%s/fimo.txt" % fimodir):
+        occ = []
+        with open("%s/fimo.txt" % fimodir) as fimofile:
+            fimofile.readline()
+            for line in fimofile:
+                line = line.split()
+                occ.append((int(line[0]), int(line[2]) - 1, int(line[3]) - 1, float(line[5]), float(line[6])))
+    elif os.path.exists("%s/fimo.tsv" % fimodir):
+        occ = []
+        with open("%s/fimo.tsv" % fimodir) as fimofile:
+            fimofile.readline()
+            for line in fimofile:
+                if not line.startswith("#"):
+                    line = line.split()
+                    if len(line) > 0:
+                        occ.append((int(line[0]), int(line[2]) - 1, int(line[3]) - 1, float(line[5]), float(line[6])))
     return occ
 
 def read_occ_distribution(handle, window):
