@@ -201,6 +201,7 @@ def main():
                                                  organelle, prob, cleavage, occs)
                 protein_jsons.append(acc_json)
             we.destroy()
+            seq_idx = seq_idx + 1
         if args.outfmt == "json":
             json.dump(protein_jsons, args.outFile, indent=5)
 
