@@ -67,7 +67,7 @@ def parse_arguments():
                                      formatter_class = argparse.RawDescriptionHelpFormatter,
                                      description = config.DESCRIPTION,
                                      epilog = config.EPILOG,
-                                     usage = '%(prog)s -f FASTA_File -o out_file [-k P,N] [-m [json|gff3]] ')
+                                     usage = '%(prog)s -f FASTA_File -o out_file [-k P,N] [-m [json|gff3]] [-t threads] ')
     options = parser.add_argument_group('OPTIONS')
     options.add_argument('-f',
                          help = 'Protein sequences in FASTA format. Required.',
@@ -90,6 +90,8 @@ def parse_arguments():
     parser.add_argument("-m", "--outfmt",
                         help = "The output format: json or gff3 (default)",
                         choices=['json', 'gff3'], required = False, default = "gff3")
+    parser.add_argument("-t", "--threads", help="Number of threads (default 1)",
+                        dest="threads", required=False, default=1, type=int)
     ns = parser.parse_args()
     return ns
 
@@ -100,6 +102,7 @@ def main():
         print("##gff-version 3", file = args.outFile)
     try:
         protein_jsons = []
+        input_dats = []
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
             we = workenv.TemporaryEnv()
             logging.info("Processing sequence %s" % fasta.id)
@@ -114,14 +117,28 @@ def main():
                                             config.KDSCALE,
                                             config.HWINDOW,
                                             config.AA_ORDER)
-            crf_cleavage, label_prob, state_prob = utils.crf_predict2(inputdat,
-                                                                      config.CRF_MODEL_FILE,
-                                                                      config.CRFBIN,
-                                                                      we)
-            if crf_cleavage > 0:
-                crf_prob = numpy.mean(label_prob[:crf_cleavage+1])
+            input_dats.append(inputdat)
+            we.destroy()
+        we = workenv.TemporaryEnv()
+        crf_cleavage, label_prob, state_prob = utils.crf_predict_multi(input_dats,
+                                                                       config.CRF_MODEL_FILE,
+                                                                       config.CRFBIN,
+                                                                       we,
+                                                                       num_threads = ns.threads)
+        we.destroy()
+        seq_idx = 0
+        for fasta in SeqIO.parse(args.fasta, 'fasta'):
+            we = workenv.TemporaryEnv()
+            l = len(str(fasta.seq))
+            seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
+            fastarecfile = we.createFile("seq.", ".fasta")
+            fsofs=open(fastarecfile,'w')
+            SeqIO.write([fasta], fsofs, 'fasta')
+            fsofs.close()
+            if crf_cleavage[seq_idx] > 0:
+                crf_prob = numpy.mean(label_prob[seq_idx][:crf_cleavage[seq_idx]+1])
                 if args.kingdom == "P":
-                    seqdat = inputdat[0:crf_cleavage+1, 0:20]
+                    seqdat = input_dats[seq_idx][0:crf_cleavage[seq_idx]+1, 0:20]
                     organelle = utils.elm_predict(seqdat, config.ELM_MODEL_FILE,
                                                   config.ELMBIN, we)
                 else:
@@ -132,11 +149,11 @@ def main():
                                               config.FIMO_TH[organelle],
                                               we)
                 svmdatfile = utils.svm_encode_protein(seq,
-                                                      crf_cleavage - 1,
+                                                      crf_cleavage[seq_idx] - 1,
                                                       int(config.SVMWINDOW[organelle]/2),
                                                       motifoccs,
-                                                      state_prob,
-                                                      label_prob,
+                                                      state_prob[seq_idx],
+                                                      label_prob[seq_idx],
                                                       config.MDWINDOW[organelle],
                                                       config.OCCDISTR[organelle],
                                                       we)
@@ -158,12 +175,12 @@ def main():
                     cleavage = str(cleavage)
                     source = "SVM"
                 else:
-                    cleavage, prob = str(crf_cleavage), crf_prob
+                    cleavage, prob = str(crf_cleavage[seq_idx]), crf_prob
                     source = "CRF"
             else:
                 cleavage = "-"
                 organelle = "N"
-                prob = numpy.mean(1.0 - label_prob[:min(30, len(seq))])
+                prob = numpy.mean(1.0 - label_prob[seq_idx][:min(30, len(seq))])
                 motifoccs = []
                 source = "CRF"
 
