@@ -148,7 +148,7 @@ def crf_predict_multi(input_dats, crfmodel, crfbin, we, num_threads = 1):
     label_prob = []
     for i in range(len(input_dats)):
         state_prob.append(numpy.array([float(line.split()[45]) for line in open(crfpstate+"_%d" % i).readlines()]))
-        label_prod.append(numpy.array([float(line.split()[0]) for line in open(crfplabel+"_%d" % i).readlines()]))
+        label_prob.append(numpy.array([float(line.split()[0]) for line in open(crfplabel+"_%d" % i).readlines()]))
     cleavage = []
     target = []
     for line in open(crfpred):
@@ -163,7 +163,7 @@ def crf_predict_multi(input_dats, crfmodel, crfbin, we, num_threads = 1):
             else:
                 cleavage.append(0)
             target = []
-    return cleavage, numpy.array(label_prob), numpy.array(state_prob)
+    return cleavage, label_prob, state_prob
 
 def crf_predict(inputdat, crfmodel):
     crfm = crf.CRF()
