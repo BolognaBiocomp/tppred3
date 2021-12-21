@@ -137,6 +137,7 @@ def main():
             SeqIO.write([fasta], fsofs, 'fasta')
             fsofs.close()
             if crf_cleavage[seq_idx] > 0:
+                print(fasta.id, seq_idx, "here")
                 crf_prob = numpy.mean(label_prob[seq_idx][:crf_cleavage[seq_idx]+1])
                 if args.kingdom == "P":
                     seqdat = input_dats[seq_idx][0:crf_cleavage[seq_idx]+1, 0:20]
