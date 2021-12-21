@@ -129,6 +129,7 @@ def main():
         we.destroy()
         seq_idx = 0
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
+            print("HERE")
             we = workenv.TemporaryEnv()
             l = len(str(fasta.seq))
             seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
