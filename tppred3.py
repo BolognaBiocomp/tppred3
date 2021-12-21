@@ -71,9 +71,7 @@ def parse_arguments():
     options = parser.add_argument_group('OPTIONS')
     options.add_argument('-f',
                          help = 'Protein sequences in FASTA format. Required.',
-                         type = argparse.FileType('r'),
                          dest = 'fasta',
-                         metavar = 'FILE',
                          required = True)
     options.add_argument('-o',
                          help = 'Output prediction file. Optional, default: STDOUT.',
