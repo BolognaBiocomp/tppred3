@@ -125,7 +125,7 @@ def main():
                                                                        config.CRFBIN,
                                                                        we,
                                                                        num_threads = args.threads)
-        #we.destroy()
+        we.destroy()
         seq_idx = 0
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
             we = workenv.TemporaryEnv()
