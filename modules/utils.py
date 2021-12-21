@@ -153,6 +153,7 @@ def crf_predict_multi(input_dats, crfmodel, crfbin, we, num_threads = 1):
     target = []
     for line in open(crfpred):
         line.split()
+        print(len(line))
         if len(line) > 0:
             target.append(line[1])
         else:
