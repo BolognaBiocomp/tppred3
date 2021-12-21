@@ -114,6 +114,66 @@ def crf_predict2(inputdat, crfmodel, crfbin, we):
         cleavage = 0
     return cleavage, numpy.array(label_prob), numpy.array(state_prob)
 
+def crf_predict_multi(input_dats, crfmodel, crfbin, we, num_threads = 1):
+    # ~/biocrf/bin/biocrf -test -w 5 -m crf.model -a 32 -d posterior-viterbi-sum -q post/posterior_label -o crf.positive.pred crf.positive.pred.dat
+    crfdat = we.createFile("crf.", ".dat")
+    cdofs=open(crfdat,'w')
+    for inputdat in input_dats:
+        for i in range(inputdat.shape[0]):
+            for j in range(inputdat.shape[1]):
+                cdofs.write("%f " % inputdat[i][j])
+            cdofs.write("L\n")
+        cdofs.write("\n")
+    cdofs.close()
+    crfpred = we.createFile("crf.", ".pred")
+    crfplabel = we.createFile("crf.",".plabel")
+    crfpstate = we.createFile("crf.",".pstate")
+    # Run prediction to get P(State)
+    # Run prediction to get P(Label) and actual predictions
+    sp.check_call([crfbin,
+                   '-test', '-w', '5', '-m',
+                   crfmodel, '-a', str(num_threads), '-d',
+                   'posterior-viterbi-max', '-q',
+                   crfpstate, '-o', crfpred, crfdat],
+                  stderr = open("/dev/null", 'w'),
+                  stdout = open("/dev/null", 'w'))
+    sp.check_call([crfbin,
+                   '-test', '-w', '5', '-m',
+                   crfmodel, '-a', str(num_threads), '-d',
+                   'posterior-viterbi-sum',
+                   '-o', crfpred, crfdat],
+                  stderr = open("/dev/null", 'w'),
+                  stdout = open("/dev/null", 'w'))
+    state_prob = []
+    label_prob = []
+    for i in range(len(input_dats)):
+        state_prob_mat = []
+        with open(crfpstate+"_%d" % i) as p_state_f:
+            for line in p_state_f:
+                v = [float(x) for x in line.split()]
+                state_prob_mat.append(v)
+        p_state_f.close()
+        state_prob_mat = numpy.array(state_prob_mat)
+        state_prob.append(numpy.ravel(state_prob_mat[:,45]))
+        label_prob.append(numpy.ravel(numpy.sum(state_prob_mat[:,:46], axis=1)))
+        #state_prob.append(numpy.array([float(line.split()[45]) for line in open(crfpstate+"_%d" % i)]))
+        #label_prob.append(numpy.array([float(line.split()[0]) for line in open(crfplabel+"_%d" % i)]))
+    cleavage = []
+    target = []
+    for line in open(crfpred):
+        line=line.split()
+        if len(line) > 0:
+            target.append(line[1])
+        else:
+            target = "".join(target)
+            m = re.match('P+', target)
+            if not m == None:
+                cleavage.append(m.end())
+            else:
+                cleavage.append(0)
+            target = []
+    return cleavage, label_prob, state_prob
+
 def crf_predict(inputdat, crfmodel):
     crfm = crf.CRF()
     crfm.parse(crfmodel)
