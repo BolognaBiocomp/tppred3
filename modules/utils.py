@@ -140,15 +140,24 @@ def crf_predict_multi(input_dats, crfmodel, crfbin, we, num_threads = 1):
     sp.check_call([crfbin,
                    '-test', '-w', '5', '-m',
                    crfmodel, '-a', str(num_threads), '-d',
-                   'posterior-viterbi-sum', '-q',
-                   crfplabel, '-o', crfpred, crfdat],
+                   'posterior-viterbi-sum',
+                   '-o', crfpred, crfdat],
                   stderr = open("/dev/null", 'w'),
                   stdout = open("/dev/null", 'w'))
     state_prob = []
     label_prob = []
     for i in range(len(input_dats)):
-        state_prob.append(numpy.array([float(line.split()[45]) for line in open(crfpstate+"_%d" % i).readlines()]))
-        label_prob.append(numpy.array([float(line.split()[0]) for line in open(crfplabel+"_%d" % i).readlines()]))
+        state_prob_mat = []
+        with open(crfpstate+"_%d" % i) as p_state_f:
+            for line in p_state_f:
+                v = [float(x) for x in line.split()]
+                state_prob_mat.append(v)
+        p_state_f.close()
+        state_prob_mat = numpy.array(state_prob_mat)
+        state_prob.append(numpy.ravel(state_prob_mat[:,45]))
+        label_prob.append(numpy.ravel(numpy.sum(state_prob_mat[:,:46], axis=1)))
+        #state_prob.append(numpy.array([float(line.split()[45]) for line in open(crfpstate+"_%d" % i)]))
+        #label_prob.append(numpy.array([float(line.split()[0]) for line in open(crfplabel+"_%d" % i)]))
     cleavage = []
     target = []
     for line in open(crfpred):
