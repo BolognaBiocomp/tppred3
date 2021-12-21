@@ -123,11 +123,9 @@ def main():
                                                                        config.CRFBIN,
                                                                        we,
                                                                        num_threads = args.threads)
-        print(crf_cleavage)
         we.destroy()
         seq_idx = 0
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
-            print("HERE")
             we = workenv.TemporaryEnv()
             l = len(str(fasta.seq))
             seq = str(fasta.seq).replace("U", "C")[:min(l, 160)]
@@ -136,7 +134,6 @@ def main():
             SeqIO.write([fasta], fsofs, 'fasta')
             fsofs.close()
             if crf_cleavage[seq_idx] > 0:
-                print(fasta.id, seq_idx, "here")
                 crf_prob = numpy.mean(label_prob[seq_idx][:crf_cleavage[seq_idx]+1])
                 if args.kingdom == "P":
                     seqdat = input_dats[seq_idx][0:crf_cleavage[seq_idx]+1, 0:20]
