@@ -125,6 +125,7 @@ def main():
                                                                        config.CRFBIN,
                                                                        we,
                                                                        num_threads = args.threads)
+        print(crf_cleavage)
         we.destroy()
         seq_idx = 0
         for fasta in SeqIO.parse(args.fasta, 'fasta'):
